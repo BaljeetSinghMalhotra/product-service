@@ -65,14 +65,21 @@ public class ProductServiceImpl implements ProductService {
 	@Override
 	public Product updateProductPrice(Product product) throws ProductException {
 		try {
-			Product updatedProduct = repository.getReferenceById(product.getProductId());
-			updatedProduct.setPrice(product.getPrice());
-			repository.save(updatedProduct);
-			logger.debug("Updated price of {} to :{}", updatedProduct.getProductName(),updatedProduct.getPrice());
-			return updatedProduct;
-		}catch (Exception e){
-			throw new ProductException("Product of given Id not found" + e.getMessage());
+			Product existingProduct = getProductById(product.getProductId());
+			return updateAndSaveProductPrice(existingProduct, product.getPrice());
+		} catch (Exception e) {
+			throw new ProductException("Product of given Id not found: " + e.getMessage());
 		}
+	}
 
+	private Product getProductById(Integer productId) {
+		return repository.getReferenceById(productId);
+	}
+
+	private Product updateAndSaveProductPrice(Product product, Double newPrice) {
+		product.setPrice(newPrice);
+		Product updatedProduct = repository.save(product);
+		logger.debug("Updated price of {} to: {}", updatedProduct.getProductName(), updatedProduct.getPrice());
+		return updatedProduct;
 	}
 }
