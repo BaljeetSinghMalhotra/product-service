@@ -37,6 +37,7 @@ public class ProductController {
 	public Product viewProductById(@PathVariable("productId") int productId){
 		 Product product = productService.getProductById(productId);
 		 product.setPort(Integer.parseInt(environment.getProperty("local.server.port")));
+		logger.info("Changed Code");
 		 
 		 return product;
 	}
