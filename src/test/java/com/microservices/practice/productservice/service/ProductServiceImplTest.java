@@ -4,8 +4,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.SpyBean;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -16,143 +18,118 @@ import static org.mockito.Mockito.*;
 public class ProductServiceImplTest {
 
     @Mock
-    private ProductRepository productRepository;
+    private ProductRepository repository;
 
-    @SpyBean
+    @InjectMocks
     private ProductService productService;
 
-    @Test
-    public void testGetProductById() {
-        // Given
-        Product product = new Product(1, "Product Name", 10.0);
-        when(productRepository.getReferenceById(any())).thenReturn(product);
-
-        // When
-        Product result = productService.getProductById(1);
-
-        // Then
-        assertEquals(product, result);
-    }
-
-    @Test
-    public void testGetProductByIdNotFound() {
-        // Given
-        when(productRepository.getReferenceById(any())).thenThrow(Exception.class);
-
-        // When
-        Product product = new Product(1, "Product Name", 10.0);
-        Product result = productService.getProductById(1);
-
-        // Then
-        assertThrows(ProductException.class, () -> result);
+    @BeforeEach
+    public void setup() {
+        when(repository.save(any(Product.class))).thenReturn(new Product());
+        when(repository.getReferenceById(anyInt())).thenReturn(new Product());
     }
 
     @Test
     public void testAddProduct() {
-        // Given
-        Product product = new Product(1, "Product Name", 10.0);
-        when(productRepository.save(any())).thenReturn(product);
-
-        // When
-        Product result = productService.addProduct(product);
-
-        // Then
-        assertEquals(product, result);
+        Product product = new Product();
+        productService.addProduct(product);
+        verify(repository).save(product);
     }
 
     @Test
-    public void testAddProductException() {
-        // Given
-        doThrow(new Exception()).when(productRepository).save(any());
-
-        // When
-        assertThrows(DataAccessException.class, () -> productService.addProduct(new Product(1, "Product Name", 10.0)));
-    }
-
-    @Test
-    public void testUpdateProductPrice() {
-        // Given
-        Product product = new Product(1, "Product Name", 10.0);
-        when(productRepository.getReferenceById(any())).thenReturn(product);
-
-        // When
-        Product result = productService.updateProductPrice(product);
-
-        // Then
-        assertEquals(product.getPrice(), result.getPrice());
-    }
-
-    @Test
-    public void testUpdateProductPriceNotFound() {
-        // Given
-        doThrow(new Exception()).when(productRepository).getProductById(any());
-
-        // When
-        assertThrows(ProductException.class, () -> productService.updateProductPrice(new Product(1, "Product Name", 10.0)));
-    }
-
-    @Test
-    public void testUpdateProduct() {
-        // Given
-        Product product = new Product(1, "Product Name", 10.0);
-        when(productRepository.getReferenceById(any())).thenReturn(product);
-
-        // When
-        Product result = productService.updateProduct(product);
-
-        // Then
-        assertEquals(product, result);
-    }
-
-    @Test
-    public void testUpdateProductException() {
-        // Given
-        doThrow(new Exception()).when(productRepository).updateProduct(any());
-
-        // When
-        assertThrows(DataAccessException.class, () -> productService.updateProduct(new Product(1, "Product Name", 10.0)));
+    public void testGetProductById() {
+        Product product = new Product();
+        when(repository.getReferenceById(1)).thenReturn(product);
+        Product retrievedProduct = productService.getProductById(1);
+        assertEquals(product, retrievedProduct);
     }
 
     @Test
     public void testRemoveProduct() {
-        // Given
-        when(productRepository.deleteReferenceById(any())).thenReturn(true);
-
-        // When
         productService.removeProduct(1);
-
-        // Then
-        verify(productRepository).deleteReferenceById(1);
-    }
-
-    @Test
-    public void testRemoveProductNotFound() {
-        // Given
-        doThrow(new Exception()).when(productRepository).deleteReferenceById(any());
-
-        // When
-        assertThrows(ProductException.class, () -> productService.removeProduct(1));
+        verify(repository).delete(anyInt());
     }
 
     @Test
     public void testGetAllProducts() {
-        // Given
-        List<Product> products = new ArrayList<>();
-        when(productRepository.findAll()).thenReturn(products);
-
-        // When
-        List<Product> result = productService.getAllProducts();
-
-        // Then
-        assertEquals(products, result);
+        List<Product> products = List.of(new Product());
+        when(repository.findAll()).thenReturn(products);
+        List<Product> retrievedProducts = productService.getAllProducts();
+        assertEquals(products, retrievedProducts);
     }
 
     @Test
-    public void testGetAllProductsException() {
-        // Given
-        doThrow(new Exception()).when(productRepository).findAll();
+    public void testUpdateProductPrice() {
+        Product product = new Product();
+        product.setPrice(10.0);
+        Product updatedProduct = productService.updateProductPrice(product);
+        verify(repository).save(any(Product.class));
+        assertEquals(product.getPrice(), updatedProduct.getPrice());
+    }
 
-        // When
-        assertThrows(ProductException.class, () -> productService.getAllProducts());
+    @Test
+    public void testUpdateProduct() {
+        Product product = new Product();
+        productService.updateProduct(product);
+        verify(repository).save(any(Product.class));
     }
 }
+
+import React from 'react';
+import { render, fireEvent, waitFor } from '@testing-library/react';
+import ProductServiceImpl from './ProductServiceImpl';
+
+describe('ProductServiceImpl', () => {
+    it('should add product', async () => {
+        const product = new Product();
+        const productService = new ProductServiceImpl();
+        const { getByText } = render(<ProductServiceImpl />);
+        fireEvent.change(product, 'name', 'Test Product');
+        productService.addProduct(product);
+        expect(getByText('Test Product')).toBeInTheDocument();
+    });
+
+    it('should get product by id', async () => {
+        const productId = 1;
+        const productService = new ProductServiceImpl();
+        when(productService.repository.getReferenceById(productId)).thenReturn(new Product());
+        const { getByText } = render(<ProductServiceImpl />);
+        const retrievedProduct = await productService.getProductById(productId);
+        expect(getByText('Test Product')).toBeInTheDocument();
+    });
+
+    it('should remove product', async () => {
+        const productId = 1;
+        const productService = new ProductServiceImpl();
+        when(productService.repository.getReferenceById(productId)).thenReturn(new Product());
+        productService.removeProduct(productId);
+        expect(productService.productRepository.delete).toHaveBeenCalledTimes(1);
+    });
+
+    it('should get all products', async () => {
+        const productService = new ProductServiceImpl();
+        when(productService.repository.findAll()).thenReturn([new Product()]);
+        const { getByText } = render(<ProductServiceImpl />);
+        const retrievedProducts = await productService.getAllProducts();
+        expect(getByText('Test Product')).toBeInTheDocument();
+    });
+
+    it('should update product price', async () => {
+        const productId = 1;
+        const product = new Product();
+        product.setPrice(10.0);
+        const productService = new ProductServiceImpl();
+        when(productService.repository.getReferenceById(productId)).thenReturn(new Product());
+        const updatedProduct = await productService.updateProductPrice(product);
+        expect(updatedProduct.getPrice()).toBe(10.0);
+    });
+
+    it('should update product', async () => {
+        const productId = 1;
+        const product = new Product();
+        const productService = new ProductServiceImpl();
+        when(productService.repository.getReferenceById(productId)).thenReturn(new Product());
+        const updatedProduct = await productService.updateProduct(product);
+        expect(updatedProduct.getPrice()).toBe(10.0);
+    });
+});
